@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Quiz Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #333;
+        }
+        .quiz-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            animation: fadeIn 1s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .option {
+            background: #f4f4f4;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .option:hover {
+            background: #e0e0e0;
+        }
+        .option.correct {
+            background: #d4edda;
+            animation: pulse 0.5s;
+        }
+        .option.wrong {
+            background: #f8d7da;
+            animation: shake 0.5s;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a6cd3;
+        }
+        #timer {
+            font-weight: bold;
+            color: #dc3545;
+            margin: 10px 0;
+        }
+        #feedback {
+            margin: 10px 0;
+            font-style: italic;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div id="start-screen">
+            <h1>IT Quiz Application</h1>
+            <p>Select number of questions:</p>
+            <select id="num-questions">
+                <option value="5">5 Questions</option>
+                <option value="10">10 Questions</option>
+                <option value="15">15 Questions</option>
+            </select>
+            <button onclick="startQuiz()">Start Quiz</button>
+        </div>
+        <div id="quiz-screen" class="hidden">
+            <h2>Question <span id="question-number"></span></h2>
+            <p id="timer">Time: <span id="time-left"></span>s</p>
+            <p id="question-text"></p>
+            <div id="options"></div>
+            <p id="feedback" class="hidden"></p>
+            <button id="back-btn" onclick="goBack()" class="hidden">Back</button>
+            <button onclick="nextQuestion()">Next</button>
+        </div>
+        <div id="result-screen" class="hidden">
+            <h2>Quiz Completed!</h2>
+            <p id="result-text"></p>
+            <button onclick="restartQuiz()">Restart Quiz</button>
+        </div>
+    </div>
+
+    
+<script>
+    const questions = [
+        {
+            question: "What does CPU stand for?",
+            options: ["Central Processing Unit", "Computer Personal Unit", "Core Processing Unit", "Central Program Unit"],
+            answer: "Central Processing Unit",
+            feedback: "The CPU, or Central Processing Unit, is the primary component of a computer that performs most of the processing."
+        },
+        {
+            question: "Which programming language is known as the 'language of the web'?",
+            options: ["Python", "Java", "JavaScript", "C++"],
+            answer: "JavaScript",
+            feedback: "JavaScript is widely used for web development to add interactivity to websites."
+        },
+        {
+            question: "What is the main function of RAM?",
+            options: ["Permanent storage", "Temporary storage", "Processing data", "Cooling the system"],
+            answer: "Temporary storage",
+            feedback: "RAM (Random Access Memory) provides temporary storage for data that the CPU needs to access quickly."
+        },
+        {
+            question: "What does HTML stand for?",
+            options: ["HyperText Markup Language", "HighText Machine Language", "HyperTool Multi Language", "HomeText Markup Language"],
+            answer: "HyperText Markup Language",
+            feedback: "HTML is used to structure content on the web."
+        },
+        {
+            question: "Which protocol is used to transfer web pages?",
+            options: ["FTP", "HTTP", "SMTP", "TCP"],
+            answer: "HTTP",
+            feedback: "HTTP (HyperText Transfer Protocol) is used to transfer web pages from servers to browsers."
+        },
+        {
+            question: "What is a firewall?",
+            options: ["A hardware cooling system", "A network security system", "A type of virus", "A software development tool"],
+            answer: "A network security system",
+            feedback: "A firewall monitors and controls incoming and outgoing network traffic based on security rules."
+        },
+        {
+            question: "What does SQL stand for?",
+            options: ["Structured Query Language", "Simple Query Language", "Standard Query Logic", "Sequential Query Language"],
+            answer: "Structured Query Language",
+            feedback: "SQL is used to manage and manipulate relational databases."
+        },
+        {
+            question: "What is the purpose of an operating system?",
+            options: ["To browse the internet", "To manage computer resources", "To write code", "To store data permanently"],
+            answer: "To manage computer resources",
+            feedback: "An operating system manages hardware and software resources and provides services for computer programs."
+        },
+        {
+            question: "Which of these is a cloud computing service?",
+            options: ["Microsoft Word", "AWS", "Adobe Photoshop", "VLC Media Player"],
+            answer: "AWS",
+            feedback: "AWS (Amazon Web Services) provides cloud computing services like storage and computing power."
+        },
+        {
+            question: "What is Git used for?",
+            options: ["Graphic design", "Version control", "Database management", "Network configuration"],
+            answer: "Version control",
+            feedback: "Git is a version control system for tracking changes in source code during software development."
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let selectedQuestions = [];
+    let numQuestions = 5;
+    let timer = null; // Initialize timer as null
+    let timeLeft = 30;
+    let history = [];
+
+    function startQuiz() {
+        numQuestions = parseInt(document.getElementById('num-questions').value);
+        selectedQuestions = questions.sort(() => Math.random() - 0.5).slice(0, numQuestions);
+        currentQuestionIndex = 0;
+        score = 0;
+        history = [];
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        document.getElementById('back-btn').classList.add('hidden');
+        loadQuestion();
+    }
+
+    function startTimer() {
+        // Ensure any existing timer is cleared before starting a new one
+        if (timer !== null) {
+            clearInterval(timer);
+        }
+        timeLeft = 30;
+        document.getElementById('time-left').textContent = timeLeft;
+        timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('time-left').textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                timer = null; // Reset timer to null
+                nextQuestion();
+            }
+        }, 1000); // 1000ms ensures precise second-by-second countdown
+    }
+
+    function loadQuestion() {
+        const question = selectedQuestions[currentQuestionIndex];
+        document.getElementById('question-number').textContent = `${currentQuestionIndex + 1} of ${numQuestions}`;
+        document.getElementById('question-text').textContent = question.question;
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        question.options.forEach(option => {
+            const optionElement = document.createElement('div');
+            optionElement.classList.add('option');
+            optionElement.textContent = option;
+            optionElement.onclick = () => selectOption(option, question);
+            optionsDiv.appendChild(optionElement);
+        });
+        document.getElementById('feedback').classList.add('hidden');
+        document.getElementById('back-btn').classList.toggle('hidden', currentQuestionIndex === 0);
+        startTimer();
+    }
+
+    function selectOption(selected, question) {
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null; // Reset timer to null
+        }
+        const isCorrect = selected === question.answer;
+        if (isCorrect) {
+            score++;
+        } else {
+            document.getElementById('feedback').textContent = question.feedback;
+            document.getElementById('feedback').classList.remove('hidden');
+        }
+        const options = document.querySelectorAll('.option');
+        options.forEach(option => {
+            if (option.textContent === question.answer) {
+                option.classList.add('correct');
+            } else if (option.textContent === selected && !isCorrect) {
+                option.classList.add('wrong');
+            }
+            option.onclick = null;
+        });
+        history.push({ question, selected, isCorrect });
+    }
+
+    function nextQuestion() {
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null; // Reset timer to null
+        }
+        currentQuestionIndex++;
+        if (currentQuestionIndex < numQuestions) {
+            loadQuestion();
+        } else {
+            showResults();
+        }
+    }
+
+    function goBack() {
+        if (currentQuestionIndex > 0) {
+            if (timer !== null) {
+                clearInterval(timer);
+                timer = null; // Reset timer to null
+            }
+            currentQuestionIndex--;
+            if (history[currentQuestionIndex]) {
+                score -= history[currentQuestionIndex].isCorrect ? 1 : 0;
+                history.pop();
+            }
+            loadQuestion();
+        }
+    }
+
+    function showResults() {
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null; // Reset timer to null
+        }
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('result-text').textContent = `You scored ${score} out of ${numQuestions}!`;
+    }
+
+    function restartQuiz() {
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null; // Reset timer to null
+        }
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+    }
+</script>
+```
+
+</body>
+</html>
